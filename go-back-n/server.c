@@ -118,13 +118,13 @@ void receive_data(char* hostname, int port, char* file){
                             //TODO Send ack
                             continue;
                         }
+                        if(strcmp(pkt_get_payload(pkt_receiver), END) == 0){
+                            break;
+                        }
                         length = write(fd, (void*) pkt_get_payload(pkt_receiver), len_received);
                         if(length < 0){
                             //TODO Send nack
                             continue;
-                        }
-                        if(strcmp(pkt_get_payload(pkt_receiver), END) == 0){
-                            break;
                         }
 
 

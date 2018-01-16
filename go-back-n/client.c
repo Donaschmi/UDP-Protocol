@@ -19,6 +19,7 @@
 uint8_t SEQNUM = 0;
 uint16_t LAST_ACK;
 char* END = "exit";
+char* SPACE = "space";
 
 void send_data(char *hostname, int port, char* file){
     /*
@@ -81,7 +82,8 @@ void send_data(char *hostname, int port, char* file){
     tv.tv_sec = 0;
     tv.tv_usec = 100000;
 
-    int stop = 0; //DEBUG
+    int space_in_queue = 1;
+
     /*
         Create loop for reading Input
     */
@@ -106,6 +108,9 @@ void send_data(char *hostname, int port, char* file){
             Lecture sur le fichier file ou sur le STDIN
         */
         if(FD_ISSET(fd, &read_set)){
+            // if(space_in_queue == 0){
+            //     continue;
+            // }
 
             int length = read(fd, (void*) buffer_read, MAX_PAYLOAD_SIZE);
             if(!file && length > 0)
@@ -123,9 +128,15 @@ void send_data(char *hostname, int port, char* file){
                 return;
             }
             else{ // length > 0, data to read
+                /*
+                    For DEBUG
+                */
                 if(strcmp(buffer_read, END) == 0){
-                    stop = 1;
+                    endOfFile = 1;
                 }
+                if(strcmp(buffer_read, SPACE) == 0){
+                    space_in_queue ++;
+                }// End DEBUG
 
                 if(isEmpty == 1)
                     isEmpty = 0;
@@ -160,11 +171,6 @@ void send_data(char *hostname, int port, char* file){
                     free(buffer_read);
                     return;
                 }
-                if(stop == 1){
-                    free(buffer_read);
-                    free(buffer_temp);
-                    break;
-                }
 
             } // end length > 0
 
@@ -174,12 +180,29 @@ void send_data(char *hostname, int port, char* file){
             Lecture sur le socket => ACK ou NACK
         */
         if(FD_ISSET(socket, &read_set)){
-
+            space_in_queue++;
         } // End of Ack/Nack control block
         free(buffer_read);
         free(buffer_temp);
     } // End while loop
+    if(file){
+        pkt_set_payload(pkt_sender, END, sizeof(END));
+        pkt_set_seqnum(pkt_sender, SEQNUM);
+        char buffer_EOF[16 + sizeof(END)];
+        size_t len = sizeof(buffer_EOF);
+        return_status = pkt_encode(pkt_sender, buffer_EOF, &len);
+        if(return_status != PKT_OK){
+            fprintf(stderr, "Error encoding ending packet\n");
+            pkt_del(pkt_sender);
+            return;
+        }
+        int length = write(socket, buffer_EOF, sizeof(buffer_EOF));
+        if(length < 0){
+            fprintf(stderr, "Error encoding ending packet\n");
+            pkt_del(pkt_sender);
+            return;
+        }
+    }
     pkt_del(pkt_sender);
-
 
 } // End send_data

@@ -8,7 +8,7 @@
 /* Your code will be inserted here */
 
 struct __attribute__((__packed__)) pkt {
-  uint8_t WINDOW : 5;
+    uint8_t WINDOW : 5;
 	uint8_t TR : 1;
 	uint8_t TYPE : 2;
 	uint8_t SEQNUM;
